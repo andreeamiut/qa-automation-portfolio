@@ -1,79 +1,141 @@
-name: CI
+name: Tests
 
 on:
+  push:
+    branches: [main]
   pull_request:
   schedule:
     - cron: "0 2 * * *"   # nightly, 02:00 UTC
   workflow_dispatch:
+    inputs:
+      suite:
+        description: Which tests to run
+        type: choice
+        options: [regression, smoke, llm, perf, all]
+        default: regression
+
+# a newer push to the same branch cancels the run still in progress
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
-  smoke:
-    if: github.event_name == 'pull_request'
+  plan:
     runs-on: ubuntu-latest
+    outputs:
+      suites: ${{ steps.pick.outputs.suites }}
+      perf: ${{ steps.pick.outputs.perf }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "25"
-          cache: maven
-      - name: Install Playwright browsers
-        run: mvn -B -q test-compile exec:java -Dexec.args="install --with-deps chromium"
-      - name: Smoke
-        run: mvn -B test -Psmoke
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: smoke-reports
-          path: |
-            target/surefire-reports
-            target/allure-results
-            target/traces
+      - id: pick
+        run: |
+          case "${{ github.event_name }}" in
+            pull_request) suites='["smoke"]' ;;
+            push)         suites='["regression"]' ;;
+            schedule)     suites='["regression","llm"]' ;;
+            workflow_dispatch)
+              case "${{ inputs.suite }}" in
+                all)  suites='["regression","llm"]' ;;
+                perf) suites='[]' ;;
+                *)    suites='["${{ inputs.suite }}"]' ;;
+              esac ;;
+          esac
+          perf=false
+          [ "${{ inputs.suite }}" = perf ] || [ "${{ inputs.suite }}" = all ] && perf=true
+          echo "suites=$suites" >> "$GITHUB_OUTPUT"
+          echo "perf=$perf" >> "$GITHUB_OUTPUT"
+          echo "Suites: $suites, perf: $perf"
 
-  regression:
-    if: github.event_name != 'pull_request'
+  tests:
+    name: ${{ matrix.suite }}
+    needs: plan
+    if: needs.plan.outputs.suites != '[]'
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "25"
-          cache: maven
-      - name: Install Playwright browsers
-        run: mvn -B -q test-compile exec:java -Dexec.args="install --with-deps chromium"
-      - name: Regression (API + UI)
-        run: mvn -B test
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: regression-reports
-          path: |
-            target/surefire-reports
-            target/allure-results
-            target/traces
-
-  llm:
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: ${{ fromJSON(needs.plan.outputs.suites) }}
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "25"
           cache: maven
+
       - name: Install Playwright browsers
         run: mvn -B -q test-compile exec:java -Dexec.args="install --with-deps chromium"
-      - name: LLM evaluation
-        run: mvn -B test -Pllm
+
+      - name: Run ${{ matrix.suite }} tests
+        run: |
+          case "${{ matrix.suite }}" in
+            smoke) mvn -B test -Psmoke ;;
+            llm)   mvn -B test -Pllm ;;
+            *)     mvn -B test ;;
+          esac
+
+      - name: Build Allure report
+        if: always()
+        run: mvn -B -q allure:report
+
+      - name: Test summary
+        if: always()
+        run: |
+          {
+            echo "### ${{ matrix.suite }} tests"
+            echo "| Class | Tests | Failures | Errors | Skipped |"
+            echo "|---|---|---|---|---|"
+            for f in target/surefire-reports/TEST-*.xml; do
+              [ -e "$f" ] || continue
+              line=$(head -c 2000 "$f" | grep -o '<testsuite [^>]*>')
+              attr() { echo "$line" | grep -o " $1=\"[^\"]*\"" | head -1 | cut -d'"' -f2; }
+              echo "| $(attr name | sed 's/.*\.//') | $(attr tests) | $(attr failures) | $(attr errors) | $(attr skipped) |"
+            done
+            echo
+            echo "Full report: download the **allure-report-${{ matrix.suite }}** artifact and open it with \`npx allure open <folder>\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: llm-eval
+          name: allure-report-${{ matrix.suite }}
+          path: target/site/allure-maven-plugin
+          if-no-files-found: ignore
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: raw-results-${{ matrix.suite }}
           path: |
             target/surefire-reports
             target/allure-results
+            target/traces
             target/llm-eval
+          if-no-files-found: ignore
+
+  perf:
+    needs: plan
+    if: needs.plan.outputs.perf == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+      - name: Gatling (PERF-01)
+        run: mvn -B gatling:test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gatling-report
+          path: target/gatling
+          if-no-files-found: ignore
