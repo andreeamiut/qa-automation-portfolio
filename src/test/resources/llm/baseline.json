@@ -1,0 +1,7 @@
+{
+  "prompt_version": null,
+  "model": null,
+  "recorded_at": null,
+  "metrics": null,
+  "notes": "Empty until the first reviewed run. Run mvn test -Pllm, review target/llm-eval/current.json case by case, then copy prompt_version, model, recorded_at and metrics here. LLM-07 is skipped while metrics is null."
+}

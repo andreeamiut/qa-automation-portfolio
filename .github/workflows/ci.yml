@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  pull_request:
+  schedule:
+    - cron: "0 2 * * *"   # nightly, 02:00 UTC
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+      - name: Install Playwright browsers
+        run: mvn -B -q test-compile exec:java -Dexec.args="install --with-deps chromium"
+      - name: Smoke
+        run: mvn -B test -Psmoke
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-reports
+          path: |
+            target/surefire-reports
+            target/allure-results
+            target/traces
+
+  regression:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+      - name: Install Playwright browsers
+        run: mvn -B -q test-compile exec:java -Dexec.args="install --with-deps chromium"
+      - name: Regression (API + UI)
+        run: mvn -B test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: regression-reports
+          path: |
+            target/surefire-reports
+            target/allure-results
+            target/traces
+
+  llm:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+      - name: Install Playwright browsers
+        run: mvn -B -q test-compile exec:java -Dexec.args="install --with-deps chromium"
+      - name: LLM evaluation
+        run: mvn -B test -Pllm
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: llm-eval
+          path: |
+            target/surefire-reports
+            target/allure-results
+            target/llm-eval

@@ -1,0 +1,86 @@
+[
+  {
+    "id": "G01",
+    "message": "Hi, do you have a double room available from 14 to 17 March for two adults? We would like breakfast included.",
+    "expected_category": "BOOKING",
+    "expected_priority": "MEDIUM",
+    "notes": "clear booking request"
+  },
+  {
+    "id": "G02",
+    "message": "I need to cancel my reservation for next month, booking under the name Ionescu. Please confirm the cancellation.",
+    "expected_category": "CANCELLATION",
+    "expected_priority": "MEDIUM",
+    "notes": "clear cancellation"
+  },
+  {
+    "id": "G03",
+    "message": "My card was charged twice for the same stay, 2 x 340 GBP on 3 May. Please refund the duplicate payment as soon as possible.",
+    "expected_category": "BILLING",
+    "expected_priority": "HIGH",
+    "notes": "money charged in error -> HIGH"
+  },
+  {
+    "id": "G04",
+    "message": "We are in room 3 now and the heating does not work. It is freezing and we have a baby with us. Nobody answers at reception.",
+    "expected_category": "COMPLAINT",
+    "expected_priority": "URGENT",
+    "notes": "ongoing stay + health risk -> URGENT"
+  },
+  {
+    "id": "G05",
+    "message": "Is there parking at the hotel, and is it free for guests?",
+    "expected_category": "INQUIRY",
+    "expected_priority": "LOW",
+    "notes": "simple facilities question"
+  },
+  {
+    "id": "G06",
+    "message": "Boost your hotel's SEO ranking today! 50% discount for the first month, reply to claim your offer.",
+    "expected_category": "OTHER",
+    "expected_priority": "LOW",
+    "notes": "spam"
+  },
+  {
+    "id": "G07",
+    "message": "The room was dirty when we arrived last weekend and the staff were rude about it. I want a partial refund or I will leave a review on every site I can find.",
+    "expected_category": "COMPLAINT",
+    "expected_priority": "HIGH",
+    "notes": "ambiguous: complaint vs billing (refund asked); escalation threat -> HIGH"
+  },
+  {
+    "id": "G08",
+    "message": "Bună ziua, am o rezervare pentru vineri. Putem să venim cu o zi mai devreme, joi, și să stăm până duminică?",
+    "expected_category": "BOOKING",
+    "expected_priority": "MEDIUM",
+    "notes": "Romanian; date change on existing booking = BOOKING"
+  },
+  {
+    "id": "G09",
+    "message": "What is your cancellation policy? If I cancel two weeks before arrival, do I get my deposit back?",
+    "expected_category": "CANCELLATION",
+    "expected_priority": "LOW",
+    "notes": "ambiguous: policy question about own booking vs billing (deposit) vs inquiry"
+  },
+  {
+    "id": "G10",
+    "message": "Our flight landed late and we will arrive at about 1am tonight. Is someone there to let us in? We have a booking for tonight.",
+    "expected_category": "BOOKING",
+    "expected_priority": "URGENT",
+    "notes": "ambiguous: arrival within 24h at risk -> URGENT; category booking vs inquiry"
+  },
+  {
+    "id": "G11",
+    "message": "Could you please send me the invoice for my stay last week with the company name Acme SRL on it? Thanks.",
+    "expected_category": "BILLING",
+    "expected_priority": "LOW",
+    "notes": "invoice request, no deadline"
+  },
+  {
+    "id": "G12",
+    "message": "Hello, I'm a chef with 8 years of experience and I'd like to apply for any open kitchen position. My CV is attached.",
+    "expected_category": "OTHER",
+    "expected_priority": "LOW",
+    "notes": "job application"
+  }
+]
