@@ -1,5 +1,7 @@
 # QA Automation Portfolio
 
+[![Tests](https://github.com/andreeamiut/qa-automation-portfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/andreeamiut/qa-automation-portfolio/actions/workflows/ci.yml)
+
 Java 25 (LTS) + Maven. Tests three systems:
 
 | System | What it is | Tests |
@@ -7,6 +9,14 @@ Java 25 (LTS) + Maven. Tests three systems:
 | [restful-booker](https://restful-booker.herokuapp.com) | Public REST booking API | API-01..09, PERF-01 |
 | [restful-booker-platform](https://automationintesting.online) | UI + API of a demo B&B | UI-01..05, INT-03 |
 | Triage service (`src/main`) | LLM: customer message -> `{category, priority, summary}` | LLM-01..07, INT-03 |
+
+## What this demonstrates
+
+- **API testing** – contract, CRUD and negative tests against a public booking API
+- **UI testing** – Playwright & Selenium with traces for every run
+- **Performance** – Gatling load test with configurable users/ramp-up
+- **LLM evaluation** – golden-set accuracy, consistency, prompt-injection (canary leak) checks, LLM-as-judge and baseline regression
+- **CI** – smoke suite on every PR, Allure reporting
 
 ## Running
 
