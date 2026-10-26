@@ -73,6 +73,10 @@ jobs:
         run: mvn -B -q test-compile exec:java -Dexec.args="install --with-deps chromium"
 
       - name: Run ${{ matrix.suite }} tests
+        env:
+          # chromium (+ its OS deps) is installed above; stop Playwright.create()
+          # from downloading firefox/webkit, whose missing OS deps cause the host warning
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
         run: |
           case "${{ matrix.suite }}" in
             smoke) mvn -B test -Psmoke ;;
